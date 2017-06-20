@@ -5,7 +5,7 @@
 "use strict";
 const { EVENTS } = require("../../constants");
 const { Payloads } = require("./utils");
-const { Header, Cause, PostData } = require("./request");
+const { Header, Cause,Cookie, PostData } = require("./request");
 const { ResponseBody } = require("./response");
 
 class CDPConnector
@@ -99,6 +99,7 @@ class CDPConnector
         console.log(params.requestId);
     }
     onLoadingFinished(params){
+        // TODO: verify getCookie method. ;Cookie(params.requestId,this.Network);
         console.log(params.requestId);
     }
     onLoadingFailed(params){

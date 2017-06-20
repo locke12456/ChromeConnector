@@ -4,30 +4,33 @@
 
 function Cause( initiator ) {
     let { url , type , stack } = initiator;
+    let { callFrames } = stack;
+    if(!stack || !callFrames.length)return undefined;
     let cause = {
         type: type,
         loadingDocumentUri: url,
         stacktrace: []
     };
     try{
-        for (var chrome_stack in stack.callFrames) {
-            let {
-                functionName,
-                scriptId,
-                url,
-                lineNumber,
-                columnNumber
-            } = stack.callFrames[chrome_stack];
-            let stacktrace = {
-                scriptId: scriptId,
-                filename: url,
-                lineNumber: lineNumber,
-                columnNumber: columnNumber,
-                functionName: functionName,
-                asyncCause: null,
-            };
-            cause.stacktrace.push(stacktrace);
-        }
+        callFrames.forEach( (stack, index) => {
+                let {
+                    functionName,
+                    scriptId,
+                    url,
+                    lineNumber,
+                    columnNumber
+                } = stack;
+                let stacktrace = {
+                    scriptId,
+                    filename: url,
+                    lineNumber,
+                    columnNumber,
+                    functionName,
+                    //asyncCause: undefined,
+                };
+                cause.stacktrace.push(stacktrace);
+            }
+        );
     }catch(e){}
     return cause;
 }
@@ -65,13 +68,22 @@ function PostData(id,request , header) {
     }
     return payload;
 }
+/**
+ * Not support on current version.
+ * unstable method: Network.getCookies
+ * cause: https://chromedevtools.github.io/devtools-protocol/tot/Network/#method-getCookies
+ */
+function Cookie(id , Network)
+{
+    // TODO: verify
+}
 
 function Request( id, request ) {
 
 }
 
 function Timing( id, timing ) {
-
+    // TODO: verify
 }
 
 module.exports = {
