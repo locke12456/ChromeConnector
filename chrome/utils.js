@@ -1,54 +1,60 @@
 /**
  * Created by l on 2017/6/13.
  */
-const { Header } = require("./request");
-class Payloads{
+const { Request, Header, Cause, Cookie, PostData } = require("./request");
+const { State, ResponseBody, Timings } = require("./response");
+class Payload{
     constructor() {
-        this.payloads = new Map();
+        this.payload = {};
+        this.update = this.update.bind(this);
     }
-    add( id, payload ){
-        if(!this.payloads.has(id)){
-            this.payloads.set(id, payload);
-        }
-        return this.payloads.get(id);
-    }
-    get(id){
-        if(this.payloads.has(id))
-            return this.payloads.get(id);
-    }
-    updatePayload(payload, data)
+    async update(payload)
     {
-        return Object.assign({}, payload, data);
+        let {request , response, requestId ,timestamp} = payload;
+        let {
+            headers,
+            postData,
+            timing
+        }= request ? request : response;
+        let header = await this.mappingHeader(requestId,headers);
+        this.requestId = requestId;
+        let payloads = await Promise.all([
+            this.mappingRequest(requestId,payload),
+            header,
+            this.mappingRequestPostData(requestId,postData,header),
+            this.mappingResponseStatus(requestId,response,header),
+            this.mappingTimming(requestId,timing)
+        ]);
+        //implement payload log
+        //let postData = PostData(requestId,request,header);
+        //this.payload.add({requestId,header,postData ,request:timestamp});
+        return payloads;
     }
-    update( id, data){
-        let payload = this.get(id);
-        this.updatePayload(payload, data);
-        payload = this.get(id);
+    updatePayload(data) {
+        return Object.assign({}, this.payload, data);
     }
-    mappingTimming( id,timing ) {
-
-    }
-    mappingCause( id ,initiator )
+    async mappingTimming(requestId,timing)
     {
-
-        //this.update(id, {cause:cause} );
+        return !timing ? undefined : Timings(requestId,timing);
     }
-    mappingRequestHeader(id, request )
+    async mappingRequest(requestId,payload)
     {
-        let {headers} = request;
-        let payload = Header(headers);
-        this.update(id , {
-            request:{
-                header: payload
-            }
-        });
-
+        let {request} = payload;
+        return !request ? undefined : Request(requestId, payload);
     }
-    mappingResponseHeader(id, headers )
+    async mappingHeader(requestId,headers)
     {
-
+        return !headers ? undefined : Header(requestId, headers);
     }
-    mappingSecurityInfo()
+    async mappingRequestPostData(requestId, postData, headers)
+    {
+        return !postData ? undefined : PostData(requestId, postData, headers);
+    }
+    async mappingResponseStatus(requestId, response, header)
+    {
+        return !response ? undefined : State(response,header);
+    }
+    async mappingSecurityInfo()
     {
 
     }
@@ -57,6 +63,33 @@ class Payloads{
 
     }
 }
+class Payloads {
+    constructor() {
+        this.payloads = new Map();
+        this.update = this.update.bind(this);
+    }
+
+    add(id) {
+        if (!this.payloads.has(id)) {
+            this.payloads.set(id, new Payload());
+        }
+        return this.payloads.get(id);
+    }
+
+    get(id) {
+        if (this.payloads.has(id))
+            return this.payloads.get(id);
+    }
+
+    updatePayload(payload, data) {
+        return Object.assign({}, payload, data);
+    }
+
+    update(id, data) {
+        return this.payloads.set(id, this.updatePayload(this.get(id), data));
+        //payload = this.get(id);
+    }
+}
 module.exports = {
-    Payloads,
+    Payload,Payloads,
 };

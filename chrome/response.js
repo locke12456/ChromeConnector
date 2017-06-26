@@ -2,7 +2,7 @@
  * Created by l on 2017/6/13.
  */
 
-function ResponseBody(id ,response,response_body)
+function ResponseBody(id, response, response_body)
 {
     let {
         mimeType
@@ -18,9 +18,14 @@ function ResponseBody(id ,response,response_body)
         }
     };
 }
-function SecurityDetials(id,security)
+/**
+ * Not support on current version.
+ * unstable method: Security
+ * cause: https://chromedevtools.github.io/devtools-protocol/tot/Security/
+ */
+function SecurityDetials(id, security)
 {
-    // TODO : implement
+    // TODO : verify
     /*
     let secure = {
         "from": "server1.conn72.child1/netEvent47",
@@ -91,68 +96,77 @@ function SecurityDetials(id,security)
      }).then(() => {
      window.emit(EVENTS.UPDATING_SECURITY_INFO, actor);
      });*/
-
-
 }
 
 function Timings(id ,timing)
 {
     // TODO : implement
-    /*
-     "timing": {
-     "requestTime": 198884.282331,
-     "proxyStart": -1,
-     "proxyEnd": -1,
-     "dnsStart": 0,
-     "dnsEnd": 0,
-     "connectStart": 0,
-     "connectEnd": 20.7940000109375,
-     "sslStart": 0,
-     "sslEnd": 20.7940000109375,
-     "workerStart": -1,
-     "workerReady": -1,
-     "sendStart": 1.02799999876879,
-     "sendEnd": 1.20500000775792,
-     "pushStart": 0,
-     "pushEnd": 0,
-     "receiveHeadersEnd": 97.0059999963269
-     },*/
-    /*
-     let timings = {
-     from:requestId,
-     timings:
-     {
-     blocked: ,
-     dns: ,
-     connect: ,
-     send: ,
-     wait: ,
-     receive: ,
-     },
-     totalTime: ,
-     }
-     */
-    /*
-     {
-     "from": "server1.conn121.child1/netEvent29",
-     "timings": {
-     "blocked": 74,
-     "dns": 0,
-     "connect": 0,
-     "send": 0,
-     "wait": 129,
-     "receive": 0
-     },
-     "totalTime": 203
-     }
+    let{requestTime,
+        proxyStart,
+        proxyEnd,
+        dnsStart,
+        dnsEnd,
+        connectStart,
+        connectEnd,
+        sslStart,
+        sslEnd,
+        workerStart,
+        workerReady,
+        sendStart,
+        sendEnd,
+        pushStart,
+        pushEnd,
+        receiveHeadersEnd}= timing;
+    let proxy = parseInt(proxyEnd - proxyStart);
+    let dns = parseInt(dnsEnd - dnsStart);
+    let connect = parseInt(connectEnd - connectStart);
+    let ssl = parseInt(sslEnd - sslStart);
+    let send = parseInt(sendEnd - sendStart);
+    let push = parseInt(pushEnd - pushStart);
 
-     let timings = {};
-     this.update(requestId, {
-     eventTimings: timings
-     }).then(() => {
-     window.emit(EVENTS.RECEIVED_EVENT_TIMINGS, response.from);
-     }); */
+    /*console.log(`requestTime = [${requestTime}],
+proxyStart = [${proxyStart}], proxyEnd = [${proxyEnd}], 
+dnsStart = [${dnsStart}], dnsEnd = [${dnsEnd}], 
+connectStart = [${connectStart}], connectEnd = [${connectEnd}], 
+sslStart = [${sslStart}], sslEnd = [${sslEnd}], 
+workerStart = [${workerStart}], workerReady = [${workerReady}],
+sendStart = [${sendStart}], sendEnd = [${sendEnd}], 
+pushStart = [${pushStart}], pushEnd = [${pushEnd}], 
+receiveHeadersEnd = [${receiveHeadersEnd}], 
+proxy = [${proxy}] dns = [${dns}] connect = [${connect}] ssl = [${ssl}] send = [${send}] push = [${push}]`);
+*/
+     let total = parseInt(receiveHeadersEnd);
+     return {
+         from: id,
+         timings: {
+             blocked: 0,
+             dns: dns,
+             connect: connect,
+             send: send,
+             wait: parseInt(receiveHeadersEnd-(send+connect+dns)),
+             receive: 0,
+         },
+         totalTime: total,
+     };
+}
+function State(response,headers) {
+    let { headersSize } = headers;
+    let {
+        status,
+        statusText,
+        remoteIPAddress,
+        remotePort
+    } = response;
+    return {
+        remoteAddress: remoteIPAddress,
+        remotePort,
+        status,
+        statusText,
+        headersSize
+    };
 }
 module.exports = {
+    State,
+    Timings,
     ResponseBody
 }

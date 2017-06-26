@@ -46,7 +46,7 @@ function Header( id, headers ) {
             }
         );
         headersSize += value.length+headers[value].length;
-        console.log(`headers[${value}] = ${headers[value]}`);
+        //console.log(`headers[${value}] = ${headers[value]}`);
     });
 
     return {
@@ -56,9 +56,8 @@ function Header( id, headers ) {
         rawHeaders: undefined,
     };
 }
-function PostData(id,request , header) {
+function PostData(id, postData, header) {
     let {headers,headersSize} = header;
-    let {postData} = request;
     let payload = undefined ,requestPostData = {postData:{}};
     if(postData) {
         payload = {from: id,postDataDiscarded:false};
@@ -78,18 +77,22 @@ function Cookie(id , Network)
     // TODO: verify
 }
 
-function Request( id, request ) {
-
-}
-
-function Timing( id, timing ) {
-    // TODO: verify
+function Request(id, requestData) {
+    let {request,initiator,timestamp} = requestData;
+    let {url,method} = request;
+    let cause = Cause(initiator);
+    return {
+        method, url, cause,
+        isXHR: false,
+        startedDateTime: timestamp,
+        fromCache: undefined,
+        fromServiceWorker: undefined
+    };
 }
 
 module.exports = {
     Cause,
     Header,
     Request,
-    PostData,
-    Timing
+    PostData
 }
