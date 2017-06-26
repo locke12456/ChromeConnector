@@ -5,7 +5,6 @@
 "use strict";
 const { EVENTS } = require("../../constants");
 const { Payloads } = require("./utils");
-const { Header, Cause,Cookie, PostData } = require("./request");
 const { ResponseBody } = require("./response");
 
 class CDPConnector
@@ -18,6 +17,7 @@ class CDPConnector
         this.onDataReceived = this.onDataReceived.bind(this);
         this.onLoadingFinished = this.onLoadingFinished.bind(this);
         this.onLoadingFailed = this.onLoadingFailed.bind(this);
+        this.update = this.update.bind(this);
     }
     setup(connection , actions)
     {
@@ -35,70 +35,72 @@ class CDPConnector
         this.Network.disable();
     }
     onNetworkUpdate(params) {
-        let {request,requestId,initiator} = params;
-        let {headers} = request;
-        //if(!this.payloads.has(params.requestId)){
-        //    this.payloads.set(params.requestId, {});
-        //}
-        let cause = Cause(initiator);
 
-        let data = { method:params.request.method,url:params.request.url,cause:cause,isXHR:false,startedDateTime:params.timestamp,fromCache:undefined,fromServiceWorker:undefined };
+        let {requestId} = params;
+        let payload = this.payloads.add(requestId);
+        return payload.update(params).then(
+            ([request, header, postData]) => {
+                this.addRequest(requestId, request);
+                this.updateRequestHeader(requestId, header);
+                this.updatePostData(requestId, postData);
+            });
+    }
 
-        this.addRequest( requestId, data );
+    onResponseReceived(params){
+        let {requestId} = params;
+        let payload = this.payloads.get(requestId);
+        return payload.update(params).then(
+            ([request, header, postData ,state,timings])=>
+            {
+                this.updateResponseHeader(requestId, header);
+                this.updateResponseState(requestId, state);
+                this.updateResponseTiming(requestId, timings);
+                this.getResponseBody(params);
+            });
+    }
 
-        let header = Header(requestId, headers);
-        let postData = PostData(requestId,request,header);
-
+    updateRequestHeader(requestId, header) {
         this.update(requestId, {
             requestHeaders: header
         }).then(() => {
             window.emit(EVENTS.RECEIVED_REQUEST_HEADERS, header);
         });
-        if (postData) {
-            this.update(requestId, {
-                requestPostData: postData,
-            }).then(() => {
-                window.emit(EVENTS.RECEIVED_REQUEST_POST_DATA, requestId);
-            });
-        }
-        console.log(requestId);
     }
-    onResponseReceived(params){
-        let {response} = params;
 
-        let {
-            headers,
-            status,
-            statusText,
-            remoteIPAddress,
-            remotePort,
-        } = response;
-        let {requestId} = params;
-        let header = Header(requestId,headers);
+
+    updateResponseTiming(requestId, timings) {
+        this.update(requestId, {
+            eventTimings: timings
+        }).then(() => {
+            window.emit(EVENTS.RECEIVED_EVENT_TIMINGS, requestId);
+        });
+    }
+
+    updateResponseState(requestId, state) {
+        this.update(requestId, state).then(() => {
+            window.emit(EVENTS.STARTED_RECEIVING_RESPONSE, requestId);
+        });
+    }
+
+    updateResponseHeader(requestId, header) {
         this.update(requestId, {
             responseHeaders: header
         }).then(() => {
             window.emit(EVENTS.RECEIVED_RESPONSE_HEADERS, header);
         });
-
-
-        this.update(requestId, {
-            remoteAddress: remoteIPAddress,
-            remotePort: remotePort,
-            status: status,
-            statusText: statusText,
-            headersSize: header.headersSize
-        }).then(() => {
-            window.emit(EVENTS.STARTED_RECEIVING_RESPONSE, requestId);
-        });
-
-        this.getResponseBody(params);
-
     }
     onDataReceived(params){
+        let {requestId} = params;
+        //let payload = this.payloads.get(requestId);
+        //this.payloads.update(requestId,{receive:params.timestamp});
         console.log(params.requestId);
     }
     onLoadingFinished(params){
+
+        //let {requestId} = params;
+        //let payload = this.payloads.get(requestId);
+        //this.payloads.update(requestId,{finish:params.timestamp});
+
         // TODO: verify getCookie method. ;Cookie(params.requestId,this.Network);
         console.log(params.requestId);
     }
@@ -120,10 +122,22 @@ class CDPConnector
                 });
             });
     }
+    updatePostData(requestId, postData)
+    {
+        if (postData) {
+            this.update(requestId, {
+                requestPostData: postData,
+            }).then(() => {
+                window.emit(EVENTS.RECEIVED_REQUEST_POST_DATA, requestId);
+            });
+        }
+    }
+
     async update(id,payload)
     {
-        this.actions.updateRequest(id, payload, true);
+        return this.actions.updateRequest(id, payload, true);
     }
+
     addRequest(id, data) {
         let {
             method,
