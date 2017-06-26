@@ -58,15 +58,19 @@ function Header( id, headers ) {
 }
 function PostData(id, postData, header) {
     let {headers,headersSize} = header;
-    let payload = undefined ,requestPostData = {postData:{}};
+    let payload = undefined ,
+        requestPostData =
+            {
+                from: id, postDataDiscarded: false, postData: {}
+            };
     if(postData) {
-        payload = {from: id,postDataDiscarded:false};
         requestPostData.postData.text = postData;
         payload.requestPostData = Object.assign({}, requestPostData);
         payload.requestHeadersFromUploadStream = {headers, headersSize};
     }
     return payload;
 }
+
 /**
  * Not support on current version.
  * unstable method: Network.getCookies
