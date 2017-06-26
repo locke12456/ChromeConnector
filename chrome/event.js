@@ -6,7 +6,7 @@
 const { EVENTS } = require("../../constants");
 const { Payloads } = require("./utils");
 const { ResponseBody } = require("./response");
-
+const { formDataURI } = require("../../utils/request-utils");
 class CDPConnector
 {
     constructor()
@@ -114,11 +114,22 @@ class CDPConnector
         this.Network.getResponseBody = this.Network.getResponseBody.bind(this);
         return await this.Network.getResponseBody({requestId},
             (base64 , params)=> {
-                const {body} = params;
+                const {body,base64Encoded} = params;
+                let {mimeType,encodedDataLength} = response;
                 let responseContent = ResponseBody(requestId, response, params);
-                let payload = Object.assign({responseContent: responseContent}, body);
-                self.update(responseContent.from, payload).then(() => {
-                    window.emit(EVENTS.RECEIVED_RESPONSE_CONTENT, responseContent.from);
+                let payload = Object.assign(
+                    {
+                        responseContent,
+                        contentSize: body.length,
+                        transferredSize: encodedDataLength, // TODO: verify
+                        mimeType: mimeType
+                    }, body);
+                if (mimeType.includes("image/")) {
+                    payload.responseContentDataUri = formDataURI(mimeType, base64Encoded, response);
+                }
+
+                self.update(requestId, payload).then(() => {
+                    window.emit(EVENTS.RECEIVED_RESPONSE_CONTENT, requestId);
                 });
             });
     }
