@@ -84,7 +84,7 @@ function Cookie(id , Network)
 function Request(id, requestData) {
     let {request,initiator,timestamp} = requestData;
     let {url,method} = request;
-    let cause = Cause(initiator);
+    let cause =!initiator ? undefined : Cause(initiator);
     return {
         method, url, cause,
         isXHR: false,

@@ -28,6 +28,7 @@ class ChromeConnector {
         this.actions = actions;
         this.connector = new CDPConnector();
         this.connector.setup(tabConnection,this.actions);
+        this.connector.willNavigate(this.willNavigate);
         // TODO : implement "will-navigate"
         //this.tabTarget.on("will-navigate", this.willNavigate);
         //this.tabTarget.on("close", this.disconnect);

@@ -2,7 +2,9 @@
  * Created by l on 2017/6/13.
  */
 
-function ResponseBody(id, response, response_body)
+const { formDataURI } = require("../../utils/request-utils");
+
+function ResponseInfo(id, response, response_body)
 {
     let {
         mimeType
@@ -17,6 +19,24 @@ function ResponseBody(id, response, response_body)
             encoding: base64Encoded ? "base64" : undefined
         }
     };
+}
+
+function ResponseContent(id, response, content)
+{
+    const {body,base64Encoded} = content;
+    let {mimeType,encodedDataLength} = response;
+    let responseContent = ResponseInfo(id, response, content);
+    let payload = Object.assign(
+        {
+            responseContent,
+            contentSize: body.length,
+            transferredSize: encodedDataLength, // TODO: verify
+            mimeType: mimeType
+        }, body);
+    if (mimeType.includes("image/")) {
+        payload.responseContentDataUri = formDataURI(mimeType, base64Encoded, response);
+    }
+    return payload;
 }
 /**
  * Not support on current version.
@@ -168,5 +188,5 @@ function State(response,headers) {
 module.exports = {
     State,
     Timings,
-    ResponseBody
+    ResponseContent
 }

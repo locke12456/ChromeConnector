@@ -2,7 +2,36 @@
  * Created by l on 2017/6/13.
  */
 const { Request, Header, Cause, Cookie, PostData } = require("./request");
-const { State, ResponseBody, Timings } = require("./response");
+const { State, ResponseContent, Timings } = require("./response");
+
+class Scheduler
+{
+    constructor(){
+        this.busy = false;
+        this.queue = [];
+    }
+    sync(task)
+    {
+        this.queue.push(task);
+        if(!this.busy)return this.dequeue();
+    }
+    dequeue()
+    {
+        let self = this;
+        this.busy = true;
+        let next = this.queue.shift();
+        if(next)
+        {
+            next().then(
+                (resolve) => {
+                    self.dequeue();
+                },(reject) => {
+                    self.dequeue();
+                });
+        }else this.busy=false;
+    }
+}
+
 class Payload{
     constructor() {
         this.payload = {};
@@ -10,7 +39,7 @@ class Payload{
     }
     async update(payload)
     {
-        let {request , response, requestId ,timestamp} = payload;
+        let { request, response, requestId, timestamp, content } = payload;
         let {
             headers,
             postData,
@@ -23,7 +52,8 @@ class Payload{
             header,
             this.mappingRequestPostData(requestId,postData,header),
             this.mappingResponseStatus(requestId,response,header),
-            this.mappingTimming(requestId,timing)
+            this.mappingTimming(requestId,timing),
+            this.mappingResponseContent(requestId,response,content)
         ]);
         //implement payload log
         //let postData = PostData(requestId,request,header);
@@ -53,6 +83,10 @@ class Payload{
     async mappingResponseStatus(requestId, response, header)
     {
         return !response ? undefined : State(response,header);
+    }
+    async mappingResponseContent(requestId, response, content)
+    {
+        return !response||!content ? undefined : ResponseContent(requestId, response, content);
     }
     async mappingSecurityInfo()
     {
@@ -90,6 +124,8 @@ class Payloads {
         //payload = this.get(id);
     }
 }
+
+
 module.exports = {
-    Payload,Payloads,
+    Payload,Payloads,Scheduler
 };

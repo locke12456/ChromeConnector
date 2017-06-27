@@ -5,8 +5,6 @@
 "use strict";
 const { EVENTS } = require("../../constants");
 const { Payloads } = require("./utils");
-const { ResponseBody } = require("./response");
-const { formDataURI } = require("../../utils/request-utils");
 class CDPConnector
 {
     constructor()
@@ -21,8 +19,9 @@ class CDPConnector
     }
     setup(connection , actions)
     {
-        let { Network } = connection;
+        let { Network, Page } = connection;
         this.Network = Network;
+        this.Page = Page;
         this.actions = actions;
         Network.requestWillBeSent(this.onNetworkUpdate);
         Network.responseReceived(this.onResponseReceived);
@@ -30,12 +29,17 @@ class CDPConnector
         Network.loadingFinished(this.onLoadingFinished);
         Network.loadingFailed(this.onLoadingFailed);
         Network.enable();
+        Page.enable();
     }
     disconnect() {
         this.Network.disable();
+        this.Page.disable();
+    }
+    willNavigate(event)
+    {
+        // not support
     }
     onNetworkUpdate(params) {
-
         let {requestId} = params;
         let payload = this.payloads.add(requestId);
         return payload.update(params).then(
@@ -111,27 +115,24 @@ class CDPConnector
     {
         let {requestId,response} = params;
         let self = this;
-        this.Network.getResponseBody = this.Network.getResponseBody.bind(this);
-        return await this.Network.getResponseBody({requestId},
-            (base64 , params)=> {
-                const {body,base64Encoded} = params;
-                let {mimeType,encodedDataLength} = response;
-                let responseContent = ResponseBody(requestId, response, params);
-                let payload = Object.assign(
-                    {
-                        responseContent,
-                        contentSize: body.length,
-                        transferredSize: encodedDataLength, // TODO: verify
-                        mimeType: mimeType
-                    }, body);
-                if (mimeType.includes("image/")) {
-                    payload.responseContentDataUri = formDataURI(mimeType, base64Encoded, response);
-                }
+        return await self.Network.getResponseBody({requestId} ,
+            (success , content)=> {
+                let payload = self.payloads.get(requestId);
+                return payload.update({requestId,response,content}).then(
+                    ([request, header, postData ,state,timings,responseContent]) => {
+                        self.updateResponseContent(requestId, responseContent);
+                    }
+                );
+            }
+        );
+    }
 
-                self.update(requestId, payload).then(() => {
-                    window.emit(EVENTS.RECEIVED_RESPONSE_CONTENT, requestId);
-                });
-            });
+    updateResponseContent(requestId, responseContent) {
+        this.update(requestId, responseContent).then(
+            () => {
+                window.emit(EVENTS.RECEIVED_RESPONSE_CONTENT, requestId);
+            }
+        )
     }
     updatePostData(requestId, postData)
     {
