@@ -4,7 +4,7 @@
 
 function Cause( initiator ) {
     let { url , type , stack } = initiator;
-    let { callFrames } = stack;
+    let { callFrames } = stack || {};
     if(!stack || !callFrames.length)return undefined;
     let cause = {
         type: type,
@@ -87,7 +87,7 @@ function Request(id, requestData) {
     let cause =!initiator ? undefined : Cause(initiator);
     return {
         method, url, cause,
-        isXHR: false,
+        isXHR: false, // TODO: verify
         startedDateTime: timestamp,
         fromCache: undefined,
         fromServiceWorker: undefined
