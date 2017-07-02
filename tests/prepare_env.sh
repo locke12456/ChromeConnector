@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 export HOME="$(realpath ~)"
 export MOZ_HOME="$HOME/src/mozilla-central"
 export NETMONITOR_HOME="$MOZ_HOME/devtools/client/netmonitor"
