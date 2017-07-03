@@ -58,7 +58,7 @@ function Header( id, headers ) {
 }
 function PostData(id, postData, header) {
     let {headers,headersSize} = header;
-    let payload = undefined ,
+    let payload = {} ,
         requestPostData =
             {
                 from: id, postDataDiscarded: false, postData: {}

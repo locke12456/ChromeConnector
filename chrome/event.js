@@ -5,6 +5,8 @@
 "use strict";
 const { EVENTS } = require("../../constants");
 const { Payloads } = require("./utils");
+const { getBulkLoader } = require("./bulk-loader");
+
 class CDPConnector
 {
     constructor()
@@ -115,25 +117,22 @@ class CDPConnector
     {
         let {requestId,response} = params;
         let self = this;
+
         return await self.Network.getResponseBody({requestId} ,
             (success , content)=> {
                 let payload = self.payloads.get(requestId);
                 return payload.update({requestId,response,content}).then(
                     ([request, header, postData ,state,timings,responseContent]) => {
-                        self.updateResponseContent(requestId, responseContent);
+
+                        let bulkloader = getBulkLoader();
+                        bulkloader.loadResponseContent(self.actions,responseContent,params);
+                        //self.updateResponseContent(requestId, responseContent);
                     }
                 );
             }
         );
     }
 
-    updateResponseContent(requestId, responseContent) {
-        this.update(requestId, responseContent).then(
-            () => {
-                window.emit(EVENTS.RECEIVED_RESPONSE_CONTENT, requestId);
-            }
-        )
-    }
     updatePostData(requestId, postData)
     {
         if (postData) {
@@ -177,7 +176,6 @@ class CDPConnector
         )
             .then(() => window.emit(EVENTS.REQUEST_ADDED, id));
     }
-
 }
 
 module.exports = {

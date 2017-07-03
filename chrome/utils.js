@@ -4,34 +4,6 @@
 const { Request, Header, Cause, Cookie, PostData } = require("./request");
 const { State, ResponseContent, Timings } = require("./response");
 
-class Scheduler
-{
-    constructor(){
-        this.busy = false;
-        this.queue = [];
-    }
-    sync(task)
-    {
-        this.queue.push(task);
-        if(!this.busy)return this.dequeue();
-    }
-    dequeue()
-    {
-        let self = this;
-        this.busy = true;
-        let next = this.queue.shift();
-        if(next)
-        {
-            next().then(
-                (resolve) => {
-                    self.dequeue();
-                },(reject) => {
-                    self.dequeue();
-                });
-        }else this.busy=false;
-    }
-}
-
 class Payload{
     constructor() {
         this.payload = {};
@@ -127,5 +99,5 @@ class Payloads {
 
 
 module.exports = {
-    Payload,Payloads,Scheduler
+    Payload,Payloads
 };

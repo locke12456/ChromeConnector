@@ -14,8 +14,8 @@ function ResponseInfo(id, response, response_body)
         from: id,
         content: {
             mimeType: mimeType,
-            text: body,
-            size: body.length,
+            text: !body ? "" :body ,
+            size: !body ? 0 : body.length,
             encoding: base64Encoded ? "base64" : undefined
         }
     };
@@ -29,7 +29,7 @@ function ResponseContent(id, response, content)
     let payload = Object.assign(
         {
             responseContent,
-            contentSize: body.length,
+            contentSize: !body ? 0 : body.length,
             transferredSize: encodedDataLength, // TODO: verify
             mimeType: mimeType
         }, body);
