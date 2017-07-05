@@ -6,6 +6,8 @@ const { EVENTS } = require("../../constants");
 
 let bulkLoader = undefined;
 
+let PriorityLevels = {Critical:1,Major:2,Normal:3,None:0};
+
 class Scheduler
 {
     constructor(){
@@ -33,34 +35,45 @@ class Scheduler
         }else this.busy=false;
     }
 }
+// singleton class
+const getBulkLoader = () => {
 
-function getBulkLoader() {
+    const mappingPriority = (priority,options) =>
+    {
+        switch (priority)
+        {
+            case PriorityLevels.Critical:return options.Critical;
+            case PriorityLevels.Major:return options.Major;
+            case PriorityLevels.Normal:return options.Normal;
+            case PriorityLevels.None:
+            default: break;
+        }
+        return options.None;
+    }
 
-    let LoaderPromise = (ms, callback) => {
-        return new Promise(function(resolve, reject) {
+    const getTimeoutMS = (priority) =>
+    {
+        const delay = {Critical:3000,Major:1000,Normal:500,None:100};
+        return mappingPriority(priority,delay);
+    }
+
+    const getDelayStartMS = (priority) =>
+    {
+        const delay = {Critical:1,Major:50,Normal:100,None:100};
+        return mappingPriority(priority,delay);
+    }
+
+    const LoaderPromise = (priority, callback) => {
+        return new Promise( (resolve, reject) => {
+            const ms = getTimeoutMS(priority);
             // Set up the real work
-            setTimeout( ()=> callback(resolve, reject) , 100 );
+            setTimeout( ()=> callback(resolve, reject) , getDelayStartMS(priority) );
 
             // Set up the timeout
             setTimeout(() => {
                 reject('Promise timed out after ' + ms + ' ms');
-
-            }, ms);
+            }, ms );
         });
-    };
-
-    let updateResponseContent = (id,actions,payload) => {
-        return actions.updateRequest(id, payload, true).then(
-            () => {
-                window.emit(EVENTS.RECEIVED_RESPONSE_CONTENT, id);
-            }
-        );
-    };
-
-    let onResponseLoaded = (params, payload, actions, resolve) => {
-        let {requestId} = params;
-        updateResponseContent(requestId, actions, payload);
-        return resolve();
     };
 
     class BulkLoader
@@ -71,27 +84,15 @@ function getBulkLoader() {
             this.failed = [];
         }
 
-        loadResponseContent(actions,payload,params) {
+        add(callback,priority){
             this.scheduler.sync(() => {
-                    return LoaderPromise(1000,
-                        (resolve, reject) => {
-                            return onResponseLoaded(params, payload, actions, resolve);
-                        }
-                    )
-                }
-            );
+                return LoaderPromise(
+                    !priority ? PriorityLevels.None : priority,
+                    ( resolve, reject )=> callback( resolve, reject )
+                );
+            });
         }
 
-        reloadFailed() {
-            let self = this;
-            let next = self.failed.shift();
-            if(next) {
-                self.scheduler.sync(() => {
-                    return LoaderPromise(3000, next);
-                });
-                self.reloadFailed();
-            }
-        }
     }
 
     if(!bulkLoader)
@@ -102,4 +103,4 @@ function getBulkLoader() {
     return bulkLoader;
 }
 
-module.exports = { getBulkLoader };
+module.exports = { getBulkLoader,PriorityLevels };

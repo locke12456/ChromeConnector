@@ -5,7 +5,7 @@
 "use strict";
 const { EVENTS } = require("../../constants");
 const { Payloads } = require("./utils");
-const { getBulkLoader } = require("./bulk-loader");
+const { getBulkLoader,PriorityLevels } = require("./bulk-loader");
 
 class CDPConnector
 {
@@ -46,9 +46,15 @@ class CDPConnector
         let payload = this.payloads.add(requestId);
         return payload.update(params).then(
             ([request, header, postData]) => {
-                this.addRequest(requestId, request);
-                this.updateRequestHeader(requestId, header);
-                this.updatePostData(requestId, postData);
+                let bulkloader = getBulkLoader();
+                bulkloader.add(
+                    (resolve, reject) =>
+                        this.addRequest(requestId, request).then(()=>{
+                            this.updateRequestHeader(requestId, header);
+                            this.updatePostData(requestId, postData);
+                            resolve();
+                        })
+                , PriorityLevels.Critical );
             });
     }
 
@@ -58,10 +64,16 @@ class CDPConnector
         return payload.update(params).then(
             ([request, header, postData ,state,timings])=>
             {
-                this.updateResponseHeader(requestId, header);
-                this.updateResponseState(requestId, state);
-                this.updateResponseTiming(requestId, timings);
-                this.getResponseBody(params);
+                let bulkloader = getBulkLoader();
+                bulkloader.add(
+                    (resolve, reject) => {
+                        this.updateResponseHeader(requestId, header);
+                        this.updateResponseState(requestId, state);
+                        this.updateResponseTiming(requestId, timings);
+                        this.getResponseBody(params);
+                        resolve();
+                    }
+                , PriorityLevels.Normal );
             });
     }
 
@@ -116,22 +128,36 @@ class CDPConnector
     async getResponseBody(params)
     {
         let {requestId,response} = params;
-        let self = this;
 
-        return await self.Network.getResponseBody({requestId} ,
+        return await this.Network.getResponseBody({requestId} ,
             (success , content)=> {
-                let payload = self.payloads.get(requestId);
+                let payload = this.payloads.get(requestId);
                 return payload.update({requestId,response,content}).then(
                     ([request, header, postData ,state,timings,responseContent]) => {
 
                         let bulkloader = getBulkLoader();
-                        bulkloader.loadResponseContent(self.actions,responseContent,params);
-                        //self.updateResponseContent(requestId, responseContent);
+                        bulkloader.add(
+                            (resolve, reject) => {
+                                return this.updateResponseContent(requestId,responseContent).then(
+                                    () => resolve()
+                                );
+                            },
+                            PriorityLevels.Normal
+                        );
                     }
                 );
             }
         );
     }
+
+    async updateResponseContent(requestId, payload) {
+        return this.actions.updateRequest(requestId, payload, true).then(
+            () => {
+                window.emit(EVENTS.RECEIVED_RESPONSE_CONTENT, requestId);
+            }
+        );
+    }
+
 
     updatePostData(requestId, postData)
     {
@@ -149,7 +175,7 @@ class CDPConnector
         return this.actions.updateRequest(id, payload, true);
     }
 
-    addRequest(id, data) {
+    async addRequest(id, data) {
         let {
             method,
             url,
