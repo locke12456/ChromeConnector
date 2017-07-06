@@ -48,13 +48,14 @@ class CDPConnector
             ([request, header, postData]) => {
                 let bulkloader = getBulkLoader();
                 bulkloader.add(
+                    requestId,
                     (resolve, reject) =>
                         this.addRequest(requestId, request).then(()=>{
                             this.updateRequestHeader(requestId, header);
                             this.updatePostData(requestId, postData);
                             resolve();
                         })
-                , PriorityLevels.Critical );
+                , PriorityLevels.Major );
             });
     }
 
@@ -66,6 +67,7 @@ class CDPConnector
             {
                 let bulkloader = getBulkLoader();
                 bulkloader.add(
+                    requestId,
                     (resolve, reject) => {
                         this.updateResponseHeader(requestId, header);
                         this.updateResponseState(requestId, state);
@@ -137,6 +139,7 @@ class CDPConnector
 
                         let bulkloader = getBulkLoader();
                         bulkloader.add(
+                            requestId,
                             (resolve, reject) => {
                                 return this.updateResponseContent(requestId,responseContent).then(
                                     () => resolve()

@@ -24,7 +24,7 @@ class ChromeConnector {
 
     async connect(connection, actions, getState) {
         const { tabConnection } = connection;
-        this.tabTarget = connection.tabConnection.tabTarget;
+        //this.tabTarget = connection.tabConnection.tabTarget;
         this.actions = actions;
         this.connector = new CDPConnector();
         this.connector.setup(tabConnection,this.actions);
@@ -89,9 +89,10 @@ class ChromeConnector {
         };
         switch (type) {
             case ACTIVITY_TYPE.RELOAD.WITH_CACHE_DEFAULT:
-                return reconfigureTabAndWaitForNavigation({}).then(standBy);
+                return this.connector.Page.reload().then(standBy);
             case ACTIVITY_TYPE.RELOAD.WITH_CACHE_ENABLED:
                 this.currentActivity = ACTIVITY_TYPE.ENABLE_CACHE;
+                /*
                 this.tabTarget.once("will-navigate", () => {
                     this.currentActivity = type;
                 });
@@ -99,8 +100,10 @@ class ChromeConnector {
                     cacheDisabled: false,
                     performReload: true,
                 }).then(standBy);
+                */
             case ACTIVITY_TYPE.RELOAD.WITH_CACHE_DISABLED:
                 this.currentActivity = ACTIVITY_TYPE.DISABLE_CACHE;
+                /*
                 this.tabTarget.once("will-navigate", () => {
                     this.currentActivity = type;
                 });
@@ -108,18 +111,22 @@ class ChromeConnector {
                     cacheDisabled: true,
                     performReload: true,
                 }).then(standBy);
+                */
             case ACTIVITY_TYPE.ENABLE_CACHE:
                 this.currentActivity = type;
+                /*
                 return reconfigureTab({
                     cacheDisabled: false,
                     performReload: false,
                 }).then(standBy);
+                */
             case ACTIVITY_TYPE.DISABLE_CACHE:
                 this.currentActivity = type;
+                /*
                 return reconfigureTab({
                     cacheDisabled: true,
                     performReload: false,
-                }).then(standBy);
+                }).then(standBy);*/
         }
         this.currentActivity = ACTIVITY_TYPE.NONE;
         return Promise.reject(new Error("Invalid activity type"));

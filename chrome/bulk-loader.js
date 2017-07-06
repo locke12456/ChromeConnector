@@ -2,8 +2,6 @@
  * Created by l on 2017/7/3.
  */
 
-const { EVENTS } = require("../../constants");
-
 let bulkLoader = undefined;
 
 let PriorityLevels = {Critical:1,Major:2,Normal:3,None:0};
@@ -53,13 +51,13 @@ const getBulkLoader = () => {
 
     const getTimeoutMS = (priority) =>
     {
-        const delay = {Critical:3000,Major:1000,Normal:500,None:100};
+        const delay = {Critical:3000, Major:1000, Normal:500, None:100};
         return mappingPriority(priority,delay);
     }
 
     const getDelayStartMS = (priority) =>
     {
-        const delay = {Critical:1,Major:50,Normal:100,None:100};
+        const delay = {Critical:1, Major:50, Normal:100, None:500};
         return mappingPriority(priority,delay);
     }
 
@@ -76,21 +74,40 @@ const getBulkLoader = () => {
         });
     };
 
-    class BulkLoader
+    // TODO : recovery thread after all tasks finished.
+    class Thread
     {
         constructor()
         {
             this.scheduler = new Scheduler();
-            this.failed = [];
         }
 
-        add(callback,priority){
+        addTask(callback, priority)
+        {
             this.scheduler.sync(() => {
                 return LoaderPromise(
                     !priority ? PriorityLevels.None : priority,
                     ( resolve, reject )=> callback( resolve, reject )
                 );
             });
+        }
+    }
+
+    class BulkLoader
+    {
+        constructor()
+        {
+            this.threads = new Map();
+            //this.failed = [];
+        }
+
+        add(id, callback,priority){
+            let thread = this.threads.get(id);
+            if(!this.threads.has(id)) {
+                thread = new Thread();
+                this.threads.set(id,thread);
+            }
+            return thread.addTask(callback,priority);
         }
 
     }
