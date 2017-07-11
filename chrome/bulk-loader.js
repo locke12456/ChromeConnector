@@ -98,15 +98,16 @@ const getBulkLoader = () => {
         constructor()
         {
             this.threads = new Map();
-            //this.failed = [];
+            this.tasks = [];
         }
 
         add(id, callback,priority){
-            let thread = this.threads.get(id);
-            if(!this.threads.has(id)) {
+            let thread = this.threads.get(priority);
+            if(!this.threads.has(priority)) {
                 thread = new Thread();
-                this.threads.set(id,thread);
+                this.threads.set(priority,thread);
             }
+            this.tasks.push( { id, priority, task:callback, isFinished:false } );
             return thread.addTask(callback,priority);
         }
 

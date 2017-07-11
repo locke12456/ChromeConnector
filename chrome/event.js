@@ -61,7 +61,7 @@ class CDPConnector
                             this.updatePostData(requestId, postData);
                             resolve();
                         })
-                , PriorityLevels.Major );
+                , PriorityLevels.Critical );
             });
     }
 
@@ -81,7 +81,7 @@ class CDPConnector
                         this.getResponseBody(params);
                         resolve();
                     }
-                , PriorityLevels.Normal );
+                , PriorityLevels.Major );
             });
     }
 
