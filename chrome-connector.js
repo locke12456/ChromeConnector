@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
-const { ACTIVITY_TYPE, EVENTS } = require("../constants");
+const { ACTIVITY_TYPE } = require("../constants");
 const { CDPConnector } = require("./chrome/event");
-let payloads = [];
 class ChromeConnector {
     constructor() {
         // Internal properties
@@ -19,7 +18,6 @@ class ChromeConnector {
         this.setPreferences = this.setPreferences.bind(this);
         this.triggerActivity = this.triggerActivity.bind(this);
         this.viewSourceInDebugger = this.viewSourceInDebugger.bind(this);
-
     }
 
     async connect(connection, actions, getState) {
@@ -29,9 +27,7 @@ class ChromeConnector {
         this.connector = new CDPConnector();
         this.connector.setup(tabConnection,this.actions);
         this.connector.willNavigate(this.willNavigate);
-        // TODO : implement "will-navigate"
-        //this.tabTarget.on("will-navigate", this.willNavigate);
-        //this.tabTarget.on("close", this.disconnect);
+        // TODO : research, currently all events are about "navigation" is not support on CDP
     }
     async disconnect() {
         this.connector.disconnect();
@@ -43,11 +39,11 @@ class ChromeConnector {
     }
 
     async fetchResponseCookies(responseCookies) {
-        // TODO : implement
+        // TODO : research, currently Network.getCookie can't mapping to any response header via id or domain
     }
 
     async fetchRequestCookies(requestCookies) {
-        // TODO : implement
+        // TODO : research, currently Network.getCookie can't mapping to any request header via id or domain
     }
     /**
      * Triggers a specific "activity" to be performed by the frontend.
@@ -66,18 +62,14 @@ class ChromeConnector {
         // Waits for a series of "navigation start" and "navigation stop" events.
         let waitForNavigation = () => {
             return new Promise((resolve) => {
-                this.tabTarget.once("will-navigate", () => {
-                    this.tabTarget.once("navigate", () => {
-                        resolve();
-                    });
-                });
+                resolve();//not support
             });
         };
 
         // Reconfigures the tab, optionally triggering a reload.
         let reconfigureTab = (options) => {
             return new Promise((resolve) => {
-                this.tabTarget.activeTab.reconfigure(options, resolve);
+                resolve();// not support
             });
         };
 
@@ -131,9 +123,14 @@ class ChromeConnector {
         this.currentActivity = ACTIVITY_TYPE.NONE;
         return Promise.reject(new Error("Invalid activity type"));
     }
-    sendHTTPRequest()
-    {
-        // TODO : implement.
+    /**
+     * Send a HTTP request data payload
+     *
+     * @param {object} data data payload would like to sent to backend
+     * @param {function} callback callback will be invoked after the request finished
+     */
+    sendHTTPRequest(data, callback) {
+        // TODO : not support. currently didn't provide this feature in CDP API.
     }
     setPreferences()
     {

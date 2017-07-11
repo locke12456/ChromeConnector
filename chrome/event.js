@@ -17,13 +17,15 @@ class CDPConnector
         this.onDataReceived = this.onDataReceived.bind(this);
         this.onLoadingFinished = this.onLoadingFinished.bind(this);
         this.onLoadingFailed = this.onLoadingFailed.bind(this);
+        this.targetInfoChanged = this.targetInfoChanged.bind(this);
         this.update = this.update.bind(this);
     }
     setup(connection , actions)
     {
-        let { Network, Page } = connection;
+        let { Network, Page, Target } = connection;
         this.Network = Network;
         this.Page = Page;
+        this.Target = Target; // 'maybe' cloud catch reload event when browser was triggered reload, I guessed.
         this.actions = actions;
         Network.requestWillBeSent(this.onNetworkUpdate);
         Network.responseReceived(this.onResponseReceived);
@@ -36,6 +38,10 @@ class CDPConnector
     disconnect() {
         this.Network.disable();
         this.Page.disable();
+    }
+    targetInfoChanged(info)
+    {
+        console.log(info);
     }
     willNavigate(event)
     {
