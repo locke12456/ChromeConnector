@@ -111,6 +111,10 @@ const getBulkLoader = () => {
             return thread.addTask(callback,priority);
         }
 
+        reset(){
+            this.threads.clear();
+        }
+
     }
 
     if(!bulkLoader)

@@ -3,6 +3,7 @@
  */
 const { Request, Header, Cause, Cookie, PostData } = require("./request");
 const { State, ResponseContent, Timings } = require("./response");
+const { getBulkLoader } = require("./bulk-loader");
 
 class Payload{
     constructor() {
@@ -11,68 +12,86 @@ class Payload{
     }
     async update(payload)
     {
-        let { request, response, requestId, timestamp, content } = payload;
+        let { request, response, requestId, timestamp,
+            content, dataLength, encodedDataLength } = payload;
         let {
             headers,
             postData,
             timing
-        }= request ? request : response;
-        let header = await this.mappingHeader(requestId,headers);
+        }= (request ? request : response) || {};
+
+        const header = await this.mappingHeader(requestId,headers);
         this.requestId = requestId;
-        let payloads = await Promise.all([
+        let [Request, Header, Post ,State,Timings,Response] = await Promise.all([
             this.mappingRequest(requestId,payload),
             header,
             this.mappingRequestPostData(requestId,postData,header),
             this.mappingResponseStatus(requestId,response,header),
-            this.mappingTimming(requestId,timing),
+            this.mappingTiming(requestId,timing),
             this.mappingResponseContent(requestId,response,content)
         ]);
-        //implement payload log
-        //let postData = PostData(requestId,request,header);
-        //this.payload.add({requestId,header,postData ,request:timestamp});
-        return payloads;
+        this.updateTimestamp(timestamp);
+        this.updatePayload({ Request, Header, Post, State, Timings, Response, dataLength, encodedDataLength });
+        return [ Request, Header, Post, State, Timings, Response ];
     }
+
+    updateTimestamp(timestamp)
+    {
+        let {request} = this.payload;
+        this.updatePayload(
+            request ? { response: timestamp } : { request: timestamp }
+        );
+    }
+
     updatePayload(data) {
-        return Object.assign({}, this.payload, data);
+        this.payload = Object.assign({}, this.payload, data);
     }
-    async mappingTimming(requestId,timing)
+
+    async mappingTiming(requestId, timing)
     {
         return !timing ? undefined : Timings(requestId,timing);
     }
+
     async mappingRequest(requestId,payload)
     {
         let {request} = payload;
         return !request ? undefined : Request(requestId, payload);
     }
+
     async mappingHeader(requestId,headers)
     {
         return !headers ? undefined : Header(requestId, headers);
     }
+
     async mappingRequestPostData(requestId, postData, headers)
     {
         return !postData ? undefined : PostData(requestId, postData, headers);
     }
+
     async mappingResponseStatus(requestId, response, header)
     {
         return !response ? undefined : State(response,header);
     }
+
     async mappingResponseContent(requestId, response, content)
     {
         return !response||!content ? undefined : ResponseContent(requestId, response, content);
     }
+
     async mappingSecurityInfo()
     {
 
     }
+
     mappingCookie()
     {
 
     }
+
 }
 class Payloads {
     constructor() {
         this.payloads = new Map();
-        this.update = this.update.bind(this);
     }
 
     add(id) {
@@ -87,17 +106,16 @@ class Payloads {
             return this.payloads.get(id);
     }
 
-    updatePayload(payload, data) {
-        return Object.assign({}, payload, data);
+    clear()
+    {
+        this.payloads.clear();
+        let loader = getBulkLoader();
+        loader.reset();
     }
 
-    update(id, data) {
-        return this.payloads.set(id, this.updatePayload(this.get(id), data));
-        //payload = this.get(id);
-    }
 }
 
 
 module.exports = {
-    Payload,Payloads
+    Payload, Payloads
 };

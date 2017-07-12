@@ -38,7 +38,19 @@ class CDPConnector
     disconnect() {
         this.Network.disable();
         this.Page.disable();
+        this.payloads.clear();
     }
+
+    reset() {
+        return Promise.all([
+            this.Network.disable(),
+            this.Page.disable(),
+            this.payloads.clear(),
+            this.Network.enable(),
+            this.Page.enable()
+        ]);
+    }
+
     targetInfoChanged(info)
     {
         console.log(info);
@@ -68,21 +80,22 @@ class CDPConnector
     onResponseReceived(params){
         let {requestId} = params;
         let payload = this.payloads.get(requestId);
-        return payload.update(params).then(
-            ([request, header, postData ,state,timings])=>
-            {
-                let bulkloader = getBulkLoader();
-                bulkloader.add(
-                    requestId,
-                    (resolve, reject) => {
-                        this.updateResponseHeader(requestId, header);
-                        this.updateResponseState(requestId, state);
-                        this.updateResponseTiming(requestId, timings);
-                        this.getResponseBody(params);
-                        resolve();
-                    }
-                , PriorityLevels.Major );
-            });
+        try {
+            return payload.update(params).then(
+                ([request, header, postData, state, timings]) => {
+                    let loader = getBulkLoader();
+                    loader.add(
+                        requestId,
+                        (resolve, reject) => {
+                            this.updateResponseHeader(requestId, header);
+                            this.updateResponseState(requestId, state);
+                            this.updateResponseTiming(requestId, timings);
+                            this.getResponseBody(params);
+                            resolve();
+                        }
+                        , PriorityLevels.Major);
+                });
+        }catch (e){}
     }
 
     updateRequestHeader(requestId, header) {
@@ -92,7 +105,6 @@ class CDPConnector
             window.emit(EVENTS.RECEIVED_REQUEST_HEADERS, header);
         });
     }
-
 
     updateResponseTiming(requestId, timings) {
         this.update(requestId, {
@@ -115,23 +127,28 @@ class CDPConnector
             window.emit(EVENTS.RECEIVED_RESPONSE_HEADERS, header);
         });
     }
+
     onDataReceived(params){
         let {requestId} = params;
-        //let payload = this.payloads.get(requestId);
-        //this.payloads.update(requestId,{receive:params.timestamp});
-        console.log(params.requestId);
+        try {
+            let payload = this.payloads.get(requestId);
+            payload.update(params);
+        }catch (e){}
+        //console.log(params.requestId);
     }
+
     onLoadingFinished(params){
 
-        //let {requestId} = params;
-        //let payload = this.payloads.get(requestId);
-        //this.payloads.update(requestId,{finish:params.timestamp});
+        let {requestId} = params;
+        try {
+            let {request, response, dataLength, encodedDataLength} = this.payloads.get(requestId).payload;
 
-        // TODO: verify getCookie method. ;Cookie(params.requestId,this.Network);
-        console.log(params.requestId);
+            // TODO: verify getCookie method. ;Cookie(params.requestId,this.Network);
+            console.log(`${requestId} request: ${request}, response: ${response}, data: ${dataLength}, encoded:${encodedDataLength}`);
+        }catch (e){}
     }
     onLoadingFailed(params){
-        console.log(params.requestId);
+        //console.log(params.requestId);
     }
     async getResponseBody(params)
     {
@@ -143,8 +160,8 @@ class CDPConnector
                 return payload.update({requestId,response,content}).then(
                     ([request, header, postData ,state,timings,responseContent]) => {
 
-                        let bulkloader = getBulkLoader();
-                        bulkloader.add(
+                        let loader = getBulkLoader();
+                        loader.add(
                             requestId,
                             (resolve, reject) => {
                                 return this.updateResponseContent(requestId,responseContent).then(

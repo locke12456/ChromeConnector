@@ -80,10 +80,11 @@ class ChromeConnector {
             return reconfigureTab(options).then(() => navigationFinished);
         };
         switch (type) {
-            case ACTIVITY_TYPE.RELOAD.WITH_CACHE_DEFAULT:
-                return this.connector.Page.reload().then(standBy);
             case ACTIVITY_TYPE.RELOAD.WITH_CACHE_ENABLED:
                 this.currentActivity = ACTIVITY_TYPE.ENABLE_CACHE;
+            case ACTIVITY_TYPE.RELOAD.WITH_CACHE_DEFAULT:
+                return this.connector.Page.reload().then(standBy);//then( () => this.connector.reset() );
+
                 /*
                 this.tabTarget.once("will-navigate", () => {
                     this.currentActivity = type;
