@@ -18,11 +18,12 @@ class CDPConnector
         this.onLoadingFinished = this.onLoadingFinished.bind(this);
         this.onLoadingFailed = this.onLoadingFailed.bind(this);
         this.targetInfoChanged = this.targetInfoChanged.bind(this);
+        this.securityStateChanged = this.securityStateChanged.bind(this);
         this.update = this.update.bind(this);
     }
     setup(connection , actions)
     {
-        let { Network, Page, Target } = connection;
+        let { Network, Page, Security, Target } = connection;
         this.Network = Network;
         this.Page = Page;
         this.Target = Target; // 'maybe' cloud catch reload event when browser was triggered reload, I guessed.
@@ -32,7 +33,9 @@ class CDPConnector
         Network.dataReceived(this.onDataReceived);
         Network.loadingFinished(this.onLoadingFinished);
         Network.loadingFailed(this.onLoadingFailed);
+        Security.securityStateChanged(this.securityStateChanged);
         Network.enable();
+        Security.enable();
         Page.enable();
     }
     disconnect() {
@@ -41,7 +44,7 @@ class CDPConnector
         this.payloads.clear();
     }
 
-    reset() {
+    async reset() {
         return Promise.all([
             this.Network.disable(),
             this.Page.disable(),
@@ -50,7 +53,10 @@ class CDPConnector
             this.Page.enable()
         ]);
     }
-
+    securityStateChanged(params)
+    {
+        params;
+    }
     targetInfoChanged(info)
     {
         console.log(info);
@@ -82,7 +88,7 @@ class CDPConnector
         let payload = this.payloads.get(requestId);
         try {
             return payload.update(params).then(
-                ([request, header, postData, state, timings]) => {
+                ([request, header, postData, state, timings,response,securityInfo]) => {
                     let loader = getBulkLoader();
                     loader.add(
                         requestId,
@@ -90,7 +96,8 @@ class CDPConnector
                             this.updateResponseHeader(requestId, header);
                             this.updateResponseState(requestId, state);
                             this.updateResponseTiming(requestId, timings);
-                            this.getResponseBody(params);
+                            this.getResponseContent(params);
+                            //this.updateSecurityInfo(requestId,securityInfo);
                             resolve();
                         }
                         , PriorityLevels.Major);
@@ -128,6 +135,14 @@ class CDPConnector
         });
     }
 
+    updateSecurityInfo(requestId, securityInfo) {
+        this.update(requestId, {
+            securityState: securityInfo,
+        }).then(() => {
+            window.emit(EVENTS.RECEIVED_SECURITY_INFO, requestId);
+        });
+    }
+
     onDataReceived(params){
         let {requestId} = params;
         try {
@@ -147,10 +162,12 @@ class CDPConnector
             console.log(`${requestId} request: ${request}, response: ${response}, data: ${dataLength}, encoded:${encodedDataLength}`);
         }catch (e){}
     }
+
     onLoadingFailed(params){
         //console.log(params.requestId);
     }
-    async getResponseBody(params)
+
+    async getResponseContent(params)
     {
         let {requestId,response} = params;
 
@@ -176,14 +193,13 @@ class CDPConnector
         );
     }
 
-    async updateResponseContent(requestId, payload) {
+    updateResponseContent(requestId, payload) {
         return this.actions.updateRequest(requestId, payload, true).then(
             () => {
                 window.emit(EVENTS.RECEIVED_RESPONSE_CONTENT, requestId);
             }
         );
     }
-
 
     updatePostData(requestId, postData)
     {

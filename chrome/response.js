@@ -43,44 +43,51 @@ function ResponseContent(id, response, content)
  * unstable method: Security
  * cause: https://chromedevtools.github.io/devtools-protocol/tot/Security/
  */
-function SecurityDetials(id, security)
-{
-    // TODO : verify
-    /*
-    let secure = {
-        "from": "server1.conn72.child1/netEvent47",
-        "securityInfo": {
-            "state": "secure",
-            "cipherSuite": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", //"cipher": "CHACHA20_POLY1305",
-            "protocolVersion": "TLSv1.2",//"protocol": "QUIC",
-            "cert": {
-                "subject": {
-                    "commonName": "*.apis.google.com",//"subjectName": "*.google.com.tw",
-                    "organization": "Google Inc",
-                    "organizationalUnit": ""
-                },
-                "issuer": {
-                    "commonName": "Google Internet Authority G2",//"issuer": "Google Internet Authority G2",
-                    "organization": "Google Inc",
-                    "organizationUnit": ""
-                },
-                "validity": {
-                     //"validFrom": 1496250078,
-                     //"validTo": 1503505920,
+function SecurityDetails(id, security) {
 
-                    "start": "June 1, 2017",
-                    "end": "August 24, 2017"
+    // TODO : verify
+    let {
+        signedCertificateTimestampList,
+        cipher,
+        protocol,
+        subjectName,
+        issuer,
+    } = security;
+
+    let secure = {
+        from: id,
+        securityInfo: {
+            state: "secure",
+            cipherSuite: cipher,
+            protocolVersion: protocol,
+            cert: {
+                subject: {
+                    commonName: subjectName,
+                    //"organization": "Google Inc",
+                    //"organizationalUnit": ""
                 },
-                "fingerprint": {
-                    "sha1": "45:ED:0A:67:24:20:34:CC:69:D3:F3:F2:F8:18:B1:20:F7:B5:93:36",
-                    "sha256": "F0:42:50:FD:A1:E9:2F:90:4F:05:F4:01:FA:7F:7D:E8:E0:B2:BB:7B:83:37:77:B5:90:09:78:7B:20:1F:E1:44"
-                }
+                issuer: {
+                    commonName: issuer,
+                    //"organization": "Google Inc",
+                    //"organizationUnit": ""
+                },
+                validity: {
+                    //"validFrom": 1496250078,
+                    //"validTo": 1503505920,
+
+                    start: "June 1, 2017",//validFrom
+                    end: "August 24, 2017"//validTo
+                },
+                //"fingerprint": {
+                //    "sha1":
+                //    "sha256":
+                //   }
             },
-            "hsts": true,
-            "hpkp": true
+            //"hsts": true,
+            //"hpkp": true
         }
     };
-  */
+    return secure;
     /*
      "securityDetails": {
      "protocol": "QUIC",
@@ -111,11 +118,7 @@ function SecurityDetials(id, security)
      }
      ]
      }
-     this.updateRequest(actor, {
-     securityState: networkInfo.securityInfo,
-     }).then(() => {
-     window.emit(EVENTS.UPDATING_SECURITY_INFO, actor);
-     });*/
+     */
 }
 
 function Timings(id ,timing)
@@ -188,5 +191,6 @@ function State(response,headers) {
 module.exports = {
     State,
     Timings,
-    ResponseContent
+    ResponseContent,
+    SecurityDetails
 }

@@ -83,7 +83,7 @@ class ChromeConnector {
             case ACTIVITY_TYPE.RELOAD.WITH_CACHE_ENABLED:
                 this.currentActivity = ACTIVITY_TYPE.ENABLE_CACHE;
             case ACTIVITY_TYPE.RELOAD.WITH_CACHE_DEFAULT:
-                return this.connector.Page.reload().then(standBy);//then( () => this.connector.reset() );
+                return this.connector.reset().then( () => this.connector.Page.reload().then(standBy) );//then( () => this.connector.reset() );
 
                 /*
                 this.tabTarget.once("will-navigate", () => {

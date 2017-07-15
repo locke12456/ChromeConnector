@@ -2,7 +2,7 @@
  * Created by l on 2017/6/13.
  */
 const { Request, Header, Cause, Cookie, PostData } = require("./request");
-const { State, ResponseContent, Timings } = require("./response");
+const { State, ResponseContent, Timings, SecurityDetails } = require("./response");
 const { getBulkLoader } = require("./bulk-loader");
 
 class Payload{
@@ -21,8 +21,10 @@ class Payload{
         }= (request ? request : response) || {};
 
         const header = await this.mappingHeader(requestId,headers);
+        if(response)
+            ;
         this.requestId = requestId;
-        let [Request, Header, Post ,State,Timings,Response] = await Promise.all([
+        let [Request, Header, Post ,State, Timings, Response] = await Promise.all([
             this.mappingRequest(requestId,payload),
             header,
             this.mappingRequestPostData(requestId,postData,header),
