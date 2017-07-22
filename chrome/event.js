@@ -23,10 +23,9 @@ class CDPConnector
     }
     setup(connection , actions)
     {
-        let { Network, Page, Security, Target } = connection;
+        let { Network, Page, Security } = connection;
         this.Network = Network;
         this.Page = Page;
-        this.Target = Target; // 'maybe' cloud catch reload event when browser was triggered reload, I guessed.
         this.actions = actions;
         Network.requestWillBeSent(this.onNetworkUpdate);
         Network.responseReceived(this.onResponseReceived);
