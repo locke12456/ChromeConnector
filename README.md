@@ -1,14 +1,14 @@
 # Chrome connector
-Chrome connector's main feature is connect network features to Netmonintor from Chrome remote debugging protocol. After attached Chrome interce, netmonitor will show the request data from Chrome. 
+Chrome connector's main feature is connect network features to Netmonintor from Chrome remote debugging protocol. After attached Chrome instance, netmonitor will show the request data from Chrome. 
 
 ## Prerequisite
 Chrome connector is rely on Chrome DevTools Protocol API version 1.2.
-More detials: [stable 1.2 protocol](https://chromedevtools.github.io/devtools-protocol/1-2/)
+More details: [stable 1.2 protocol](https://chromedevtools.github.io/devtools-protocol/1-2/)
 * [Google Chrome] >= 5.4.x
 
 ## Quick Setup
 
-Chrome connector need attach to to a remotely running Chrome instance for debugging. For this scenario to work, you should start your host Chrome instance with the remote-debugging-port command line switch:
+Chrome connector need remote to attach a running Chrome instance for debugging. For this scenario to work, you should start your host Chrome instance with the remote-debugging-port command line switch:
 
 ```bash
 google-chrome --remote-debugging-port=9222
@@ -16,7 +16,11 @@ google-chrome --remote-debugging-port=9222
 
 ### How it works
 
+This connector is rely on [devtools-launchpad](https://github.com/devtools-html/devtools-core/blob/master/packages/devtools-launchpad/#readme) and chrome-remote-interface.
+. after attached Chrome instance, launchpad will looping to fetch tabs information from Chrome.
+More details infomation about chrome-remote-interface could see from [github](https://github.com/cyrus-and/chrome-remote-interface).
 
+Connector used Netwrok and Page modules from CDP. Once connected it will mapping all payload data when network request update.
 
 ## Snapshoots
 
